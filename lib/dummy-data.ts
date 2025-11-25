@@ -1,0 +1,264 @@
+import {
+  type Category,
+  type Product,
+  type User,
+  type Order,
+  OrderStatus,
+  PaymentMethod,
+  type Transaction,
+} from "./types"
+
+export const dummyUsers: User[] = [
+  {
+    id: "1",
+    email: "user@example.com",
+    name: "John Doe",
+    role: "USER",
+    createdAt: new Date("2025-01-01"),
+  },
+  {
+    id: "2",
+    email: "admin@example.com",
+    name: "Admin User",
+    role: "ADMIN",
+    createdAt: new Date("2025-01-01"),
+  },
+]
+
+export const dummyCategories: Category[] = [
+  {
+    id: "1",
+    name: "Laptops",
+    description: "High-performance laptops for every need",
+    image: "/modern-laptop-workspace.png",
+  },
+  {
+    id: "2",
+    name: "Smartphones",
+    description: "Latest smartphones and mobile devices",
+    image: "/modern-smartphone.png",
+  },
+  {
+    id: "3",
+    name: "Tablets",
+    description: "Portable tablets for productivity",
+    image: "/modern-tablet-display.png",
+  },
+  {
+    id: "4",
+    name: "Accessories",
+    description: "Tech accessories and peripherals",
+    image: "/fashion-accessories-flatlay.png",
+  },
+]
+
+export const dummyProducts: Product[] = [
+  {
+    id: "1",
+    name: 'MacBook Pro 14"',
+    description: "Powerful laptop with M3 Pro chip, 16GB RAM, and stunning Retina display. Perfect for professionals and creators.",
+    price: 1999,
+    image: "/macbook-pro.jpg",
+    categoryId: "1",
+    stock: 15,
+    rating: 4.8,
+    reviews: 234,
+    createdAt: new Date("2025-01-20"),
+  },
+  {
+    id: "2",
+    name: "Dell XPS 13",
+    description: "Ultra-compact and lightweight laptop with Intel Core i7, perfect for professionals on the go.",
+    price: 1299,
+    image: "/dell-xps.jpg",
+    categoryId: "1",
+    stock: 8,
+    rating: 4.6,
+    reviews: 189,
+    createdAt: new Date("2025-01-12"),
+  },
+  {
+    id: "3",
+    name: "iPhone 15 Pro",
+    description: "Latest iPhone with titanium design, A17 Pro chip, and advanced camera system with 5x optical zoom.",
+    price: 999,
+    image: "/iphone-15.jpg",
+    categoryId: "2",
+    stock: 25,
+    rating: 4.9,
+    reviews: 412,
+    createdAt: new Date("2025-01-22"),
+  },
+  {
+    id: "4",
+    name: "Samsung Galaxy S24",
+    description: "High-end Android smartphone with AI features, amazing display, and professional-grade cameras.",
+    price: 899,
+    image: "/samsung-galaxy.jpg",
+    categoryId: "2",
+    stock: 18,
+    rating: 4.7,
+    reviews: 356,
+    createdAt: new Date("2025-01-18"),
+  },
+  {
+    id: "5",
+    name: "iPad Air",
+    description: "Versatile tablet for work and creativity with M1 chip, Apple Pencil support, and all-day battery.",
+    price: 599,
+    image: "/ipad-air.jpg",
+    categoryId: "3",
+    stock: 12,
+    rating: 4.7,
+    reviews: 267,
+    createdAt: new Date("2025-01-15"),
+  },
+  {
+    id: "6",
+    name: "Premium Wireless Headphones",
+    description: "Studio-quality noise-canceling headphones with spatial audio and 30-hour battery life.",
+    price: 299,
+    image: "/diverse-people-listening-headphones.png",
+    categoryId: "4",
+    stock: 30,
+    rating: 4.5,
+    reviews: 178,
+    createdAt: new Date("2025-01-23"),
+  },
+  {
+    id: "7",
+    name: "USB-C Hub Pro",
+    description: "Multi-port USB-C adapter with HDMI, USB 3.0, SD card reader, and 100W power delivery.",
+    price: 79,
+    image: "/usb-hub.png",
+    categoryId: "4",
+    stock: 50,
+    rating: 4.4,
+    reviews: 92,
+    createdAt: new Date("2025-01-10"),
+  },
+  {
+    id: "8",
+    name: "Mechanical Gaming Keyboard",
+    description: "RGB mechanical keyboard with hot-swappable switches, premium build quality, and programmable keys.",
+    price: 149,
+    image: "/mechanical-keyboard.png",
+    categoryId: "4",
+    stock: 20,
+    rating: 4.6,
+    reviews: 134,
+    createdAt: new Date("2025-01-14"),
+  },
+]
+
+// Hero Slides Data
+export const heroSlides = [
+  {
+    id: 1,
+    title: "MacBook Pro 14\" M3",
+    subtitle: "Supercharged for pros",
+    description: "The most powerful MacBook Pro ever with M3 Pro chip. Experience unmatched performance.",
+    image: "/macbook-pro.jpg",
+    bgColor: "from-slate-900 to-slate-700",
+    cta: "Shop Now",
+    ctaLink: "/products/1",
+    price: "$1,999",
+    badge: "New Arrival"
+  },
+  {
+    id: 2,
+    title: "iPhone 15 Pro Max",
+    subtitle: "Titanium. So strong. So light. So Pro.",
+    description: "Forged in titanium with the powerful A17 Pro chip and advanced camera system.",
+    image: "/iphone-15.jpg",
+    bgColor: "from-blue-900 to-blue-600",
+    cta: "Discover More",
+    ctaLink: "/products/3",
+    price: "$999",
+    badge: "Best Seller"
+  },
+  {
+    id: 3,
+    title: "Premium Audio Collection",
+    subtitle: "Immerse yourself in sound",
+    description: "Experience studio-quality sound with our premium noise-canceling headphones.",
+    image: "/diverse-people-listening-headphones.png",
+    bgColor: "from-purple-900 to-purple-600",
+    cta: "Shop Audio",
+    ctaLink: "/category/4",
+    price: "From $299",
+    badge: "Hot Deal"
+  },
+  {
+    id: 4,
+    title: "Galaxy S24 Ultra",
+    subtitle: "Epic in every way",
+    description: "The ultimate Android experience with AI-powered features and stunning display.",
+    image: "/samsung-galaxy.jpg",
+    bgColor: "from-emerald-900 to-emerald-600",
+    cta: "Learn More",
+    ctaLink: "/products/4",
+    price: "$899",
+    badge: "Featured"
+  }
+]
+
+export const dummyOrders: Order[] = [
+  {
+    id: "1",
+    userId: "1",
+    items: [
+      {
+        id: "1",
+        orderId: "1",
+        productId: "3",
+        quantity: 1,
+        price: 999,
+      },
+    ],
+    status: OrderStatus.DELIVERED,
+    paymentMethod: PaymentMethod.STRIPE,
+    totalAmount: 999,
+    shippingAddress: "123 Main St, New York, NY 10001",
+    createdAt: new Date("2025-01-01"),
+    updatedAt: new Date("2025-01-05"),
+  },
+  {
+    id: "2",
+    userId: "1",
+    items: [
+      {
+        id: "2",
+        orderId: "2",
+        productId: "6",
+        quantity: 2,
+        price: 299,
+      },
+    ],
+    status: OrderStatus.SHIPPED,
+    paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+    totalAmount: 598,
+    shippingAddress: "123 Main St, New York, NY 10001",
+    createdAt: new Date("2025-01-15"),
+    updatedAt: new Date("2025-01-20"),
+  },
+]
+
+export const dummyTransactions: Transaction[] = [
+  {
+    id: "1",
+    orderId: "1",
+    amount: 999,
+    status: "COMPLETED",
+    method: PaymentMethod.STRIPE,
+    createdAt: new Date("2025-01-01"),
+  },
+  {
+    id: "2",
+    orderId: "2",
+    amount: 598,
+    status: "PENDING",
+    method: PaymentMethod.CASH_ON_DELIVERY,
+    createdAt: new Date("2025-01-15"),
+  },
+]
