@@ -7,11 +7,6 @@ import {
   Search,
   Menu,
   X,
-  Phone,
-  Mail,
-  Facebook,
-  Twitter,
-  Instagram,
   ChevronDown,
   Tag,
   Laptop,
@@ -22,16 +17,16 @@ import {
   LogIn,
   LogOut,
   Package,
-  Settings,
   LayoutDashboard
 } from "lucide-react"
-import { useCart } from "@/hooks/use-cart"
+import { useCartContext } from "@/contexts/cart-context"
 import { useWishlist } from "@/hooks/use-wishlist"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect } from "react"
 import { dummyCategories } from "@/lib/dummy-data"
 import TopBar from "./topBar"
 import SearchBar from "./searchBar"
+import { useWishlistContext } from "@/contexts/wishlist-context"
 
 
 function Logo() {
@@ -51,8 +46,8 @@ function Logo() {
 }
 
 function CartWishlistButtons() {
-  const { count: cartCount, mounted: cartMounted } = useCart()
-  const { count: wishlistCount, mounted: wishlistMounted } = useWishlist()
+  const { count: cartCount, mounted: cartMounted } = useCartContext()
+  const { count: wishlistCount, mounted: wishlistMounted } = useWishlistContext()
 
   return (
     <>
@@ -219,8 +214,8 @@ function CategoriesBar() {
 }
 
 function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { count: cartCount, mounted: cartMounted } = useCart()
-  const { count: wishlistCount, mounted: wishlistMounted } = useWishlist()
+  const { count: cartCount, mounted: cartMounted } = useCartContext()
+  const { count: wishlistCount, mounted: wishlistMounted } = useWishlistContext()
   const { user, logout } = useAuth()
   const [mounted, setMounted] = useState(false)
 

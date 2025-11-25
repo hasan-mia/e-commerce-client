@@ -8,18 +8,18 @@ import type { Product } from "@/lib/types"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useCart } from "@/hooks/use-cart"
-import { useWishlist } from "@/hooks/use-wishlist"
 import { useToast } from "@/hooks/use-toast"
 import { formatPrice } from "@/lib/utils"
+import { useCartContext } from "@/contexts/cart-context"
+import { useWishlistContext } from "@/contexts/wishlist-context"
 
 interface ProductCardProps {
   product: Product
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem, isInCart, getItemQuantity } = useCart()
-  const { isInWishlist, toggleWishlist } = useWishlist()
+  const { addItem, isInCart, getItemQuantity } = useCartContext()
+  const { isInWishlist, toggleWishlist } = useWishlistContext()
   const { toast } = useToast()
   const [isHovered, setIsHovered] = useState(false)
 

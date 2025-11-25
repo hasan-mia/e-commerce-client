@@ -3,14 +3,14 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Trash2, ShoppingCart, Minus, Plus, ArrowRight, Package, Tag, ShieldCheck } from "lucide-react"
-import { useCart } from "@/hooks/use-cart"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
+import { useCartContext } from "@/contexts/cart-context"
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, total, count } = useCart()
+  const { items, removeItem, updateQuantity, total, count } = useCartContext()
 
   const subtotal = total
   const shipping = total >= 50 ? 0 : 5.99

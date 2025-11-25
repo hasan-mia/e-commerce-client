@@ -1,17 +1,22 @@
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
-const CartContext = createContext<any>(null);
+type CartContextType = ReturnType<typeof useCart>;
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+const CartContext = createContext<CartContextType | null>(null);
+
+export function CartProvider({ children }: { children: ReactNode }) {
     const cart = useCart();
+
     return <CartContext.Provider value={cart}>{children}</CartContext.Provider>;
 }
 
 export function useCartContext() {
     const ctx = useContext(CartContext);
-    if (!ctx) throw new Error("useCartContext must be used inside <CartProvider>");
+    if (!ctx) {
+        throw new Error("useCartContext must be used inside <CartProvider>");
+    }
     return ctx;
 }

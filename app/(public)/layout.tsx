@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import Footer from "@/components/footer"
 import { CartProvider } from "@/contexts/cart-context"
 import Navbar from "@/components/navbar"
+import { WishlistProvider } from "@/contexts/wishlist-context"
 export default function PublicLayout({
     children,
 }: Readonly<{
@@ -12,11 +13,13 @@ export default function PublicLayout({
     return (
         <main>
             <CartProvider>
-                <Navbar />
-                <main className="min-h-screen">
-                    {children}
-                </main>
-                <Footer />
+                <WishlistProvider>
+                    <Navbar />
+                    <div className="min-h-screen">
+                        {children}
+                    </div>
+                    <Footer />
+                </WishlistProvider>
             </CartProvider>
             <Toaster />
             <Analytics />

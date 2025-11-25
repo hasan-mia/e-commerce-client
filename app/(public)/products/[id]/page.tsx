@@ -8,12 +8,12 @@ import { dummyProducts, dummyCategories } from "@/lib/dummy-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { useCart } from "@/hooks/use-cart"
-import { useWishlist } from "@/hooks/use-wishlist"
 import { useToast } from "@/hooks/use-toast"
 import { formatPrice } from "@/lib/utils"
 import { ProductCard } from "@/components/product-card"
 import { useParams } from "next/navigation"
+import { useCartContext } from "@/contexts/cart-context"
+import { useWishlistContext } from "@/contexts/wishlist-context"
 
 export default function ProductDetailsPage() {
   const params = useParams()
@@ -21,8 +21,8 @@ export default function ProductDetailsPage() {
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "reviews">("description")
-  const { addItem, isInCart, getItemQuantity } = useCart()
-  const { isInWishlist, toggleWishlist } = useWishlist()
+  const { addItem, isInCart, getItemQuantity } = useCartContext()
+  const { isInWishlist, toggleWishlist } = useWishlistContext()
   const { toast } = useToast()
 
   if (!product) {

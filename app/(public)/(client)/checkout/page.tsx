@@ -5,7 +5,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { useCart } from "@/hooks/use-cart"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -27,9 +26,10 @@ import {
   ArrowLeft,
   Package
 } from "lucide-react"
+import { useCartContext } from "@/contexts/cart-context"
 
 export default function CheckoutPage() {
-  const { items, total, clearCart, count } = useCart()
+  const { items, total, clearCart, count } = useCartContext()
   const router = useRouter()
   const { toast } = useToast()
 

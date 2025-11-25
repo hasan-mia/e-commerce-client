@@ -2,8 +2,6 @@
 
 import Link from "next/link"
 import { Heart, ShoppingCart, Trash2, ArrowRight, Sparkles } from "lucide-react"
-import { useWishlist } from "@/hooks/use-wishlist"
-import { useCart } from "@/hooks/use-cart"
 import { dummyProducts } from "@/lib/dummy-data"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,10 +10,12 @@ import { useToast } from "@/hooks/use-toast"
 import { ProductCard } from "@/components/product-card"
 import { formatPrice } from "@/lib/utils"
 import Image from "next/image"
+import { useCartContext } from "@/contexts/cart-context"
+import { useWishlistContext } from "@/contexts/wishlist-context"
 
 export default function WishlistPage() {
-  const { wishlistIds, removeFromWishlist, clearWishlist } = useWishlist()
-  const { addItem, isInCart } = useCart()
+  const { wishlistIds, removeFromWishlist, clearWishlist } = useWishlistContext()
+  const { addItem, isInCart } = useCartContext()
   const { toast } = useToast()
 
   const wishlistProducts = dummyProducts.filter((p) => wishlistIds.includes(p.id))
