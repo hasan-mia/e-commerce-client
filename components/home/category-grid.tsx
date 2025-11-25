@@ -24,7 +24,7 @@ export function CategoryGrid() {
           {dummyCategories.map((category, index) => (
             <Link
               key={category.id}
-              href={`/category/${category.id}`}
+              href={`/products?category=${category.id}`}
               className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 hover:border-blue-300 transition-all duration-300 hover:shadow-xl"
               style={{
                 animationDelay: `${index * 100}ms`

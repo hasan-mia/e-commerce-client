@@ -14,6 +14,8 @@ export const dummyUsers: User[] = [
     email: "user@example.com",
     name: "John Doe",
     role: "USER",
+    phone: "+1 (555) 123-4567",
+    address: "123 Main Street, Apt 4B, New York, NY 10001",
     createdAt: new Date("2025-01-01"),
   },
   {
@@ -21,10 +23,11 @@ export const dummyUsers: User[] = [
     email: "admin@example.com",
     name: "Admin User",
     role: "ADMIN",
+    phone: "+1 (555) 987-6543",
+    address: "456 Admin Boulevard, Suite 100, San Francisco, CA 94102",
     createdAt: new Date("2025-01-01"),
   },
 ]
-
 export const dummyCategories: Category[] = [
   {
     id: "1",
