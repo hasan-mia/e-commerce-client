@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "new/link"
 import { Package } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { apiClient } from "@/services/api-client"
@@ -9,6 +8,7 @@ import type { Order } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { formatPrice, formatDate } from "@/lib/utils"
+import Link from "next/link"
 
 export default function OrdersPage() {
   const { user } = useAuth()
@@ -60,15 +60,14 @@ export default function OrdersPage() {
                 <p className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</p>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  order.status === "DELIVERED"
+                className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === "DELIVERED"
                     ? "bg-success/20 text-success"
                     : order.status === "SHIPPED"
                       ? "bg-accent/20 text-accent"
                       : order.status === "CANCELLED"
                         ? "bg-destructive/20 text-destructive"
                         : "bg-warning/20 text-warning"
-                }`}
+                  }`}
               >
                 {order.status}
               </span>
