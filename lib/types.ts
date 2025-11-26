@@ -80,6 +80,7 @@ export interface Category {
 }
 
 export interface Product {
+  data: Product | undefined;
   id: string;
   name: string;
   description: string;

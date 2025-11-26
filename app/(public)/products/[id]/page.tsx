@@ -20,7 +20,10 @@ export default function ProductDetailsPage() {
   const productId = params.id as string
 
   // Fetch product from API
-  const { data: product, isLoading, isError, error } = useProduct(productId)
+  const { data: productResponse, isLoading, isError, error } = useProduct(productId)
+
+  // Extract product from nested response
+  const product = productResponse && productResponse.data ? productResponse.data : null
 
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -82,10 +85,16 @@ export default function ProductDetailsPage() {
 
   const inCart = isInCart(product.id)
   const cartQuantity = getItemQuantity(product.id)
-  const maxQuantity = product.stock - cartQuantity
+  const maxQuantity = (product?.stock || 0) - cartQuantity
+
+  // Safe number conversions
+  const productPrice = parseFloat(product?.price || "0") || 0
+  const productRating = parseFloat(product?.rating || "0") || 0
+  const productStock = product?.stock || 0
+  const productReviews = product?.reviews || 0
 
   const handleAddToCart = () => {
-    if (product.stock === 0 || product.status === 'out_of_stock') {
+    if (productStock === 0 || product?.status === 'out_of_stock') {
       toast({
         title: "Out of stock",
         description: "This product is currently unavailable",
@@ -95,7 +104,7 @@ export default function ProductDetailsPage() {
       return
     }
 
-    if (cartQuantity + quantity > product.stock) {
+    if (cartQuantity + quantity > productStock) {
       toast({
         title: "Insufficient stock",
         description: `Only ${maxQuantity} more ${maxQuantity === 1 ? "item" : "items"} available`,
@@ -108,7 +117,7 @@ export default function ProductDetailsPage() {
     addItem(product, quantity)
     toast({
       title: "Added to cart",
-      description: `${quantity}x ${product.name} added to your cart`,
+      description: `${quantity}x ${product?.name || 'Product'} added to your cart`,
     })
   }
 
@@ -118,8 +127,8 @@ export default function ProductDetailsPage() {
     toast({
       title: wasInWishlist ? "Removed from wishlist" : "Added to wishlist",
       description: wasInWishlist
-        ? `${product.name} removed from your wishlist`
-        : `${product.name} added to your wishlist`,
+        ? `${product?.name || 'Product'} removed from your wishlist`
+        : `${product?.name || 'Product'} added to your wishlist`,
     })
   }
 
@@ -136,6 +145,7 @@ export default function ProductDetailsPage() {
   }
 
   const isNewProduct = () => {
+    if (!product?.created_at) return false
     const createdDate = new Date(product.created_at)
     const daysSinceCreated = Math.floor(
       (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -143,12 +153,20 @@ export default function ProductDetailsPage() {
     return daysSinceCreated <= 7
   }
 
-  // Handle images array from API
-  const productImages = Array.isArray(product.images) && product.images.length > 0
-    ? product.images
-    : typeof product.images === "string" && product.images
-      ? [product.images]
-      : ["/placeholder.svg"]
+  // Handle images array from API - always return array with at least one image
+  const productImages = (() => {
+    const images = product?.images as unknown;
+    // If images is an array with items, use it
+    if (Array.isArray(images) && images.length > 0) {
+      return images;
+    }
+    // If images is a non-empty string, wrap it in an array
+    if (typeof images === "string" && images.trim()) {
+      return [images];
+    }
+    // Default fallback - use a white/neutral placeholder
+    return ["https://via.placeholder.com/600x600/f8fafc/cbd5e1?text=No+Image"];
+  })();
 
   return (
     <div className="min-h-screen bg-white">
@@ -158,7 +176,7 @@ export default function ProductDetailsPage() {
           <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
           <ChevronRight className="w-4 h-4" />
           <Link href="/products" className="hover:text-blue-600 transition-colors">Products</Link>
-          {product.category && (
+          {product?.category && (
             <>
               <ChevronRight className="w-4 h-4" />
               <Link href={`/products?category=${product.category.id}`} className="hover:text-blue-600 transition-colors">
@@ -167,7 +185,7 @@ export default function ProductDetailsPage() {
             </>
           )}
           <ChevronRight className="w-4 h-4" />
-          <span className="text-slate-900 font-medium truncate max-w-[200px]">{product.name}</span>
+          <span className="text-slate-900 font-medium truncate max-w-[200px]">{product?.name || 'Product'}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
@@ -177,7 +195,7 @@ export default function ProductDetailsPage() {
             <div className="relative bg-slate-50 rounded-2xl overflow-hidden aspect-square max-w-[550px] mx-auto">
               <Image
                 src={String(productImages[selectedImage]) || "/placeholder.svg"}
-                alt={product.name}
+                alt={product?.name || 'Product'}
                 fill
                 className="object-contain p-8"
                 priority
@@ -188,12 +206,12 @@ export default function ProductDetailsPage() {
                 {isNewProduct() && (
                   <Badge className="bg-blue-600 text-white border-0 text-xs">New</Badge>
                 )}
-                {Number(product.rating) >= 4.5 && (
+                {productRating >= 4.5 && (
                   <Badge className="bg-amber-500 text-white border-0 text-xs">Bestseller</Badge>
                 )}
-                {product.stock <= 5 && product.stock > 0 && (
+                {productStock <= 5 && productStock > 0 && (
                   <Badge variant="destructive" className="text-xs">
-                    {product.stock} left
+                    {productStock} left
                   </Badge>
                 )}
               </div>
@@ -232,7 +250,7 @@ export default function ProductDetailsPage() {
           {/* Right Column - Product Info */}
           <div className="space-y-6">
             {/* Category */}
-            {product.category && (
+            {product?.category && (
               <Link href={`/products?category=${product.category.id}`}>
                 <Badge variant="secondary" className="hover:bg-slate-200 transition-colors text-xs">
                   {product.category.name}
@@ -243,7 +261,7 @@ export default function ProductDetailsPage() {
             {/* Product Name */}
             <div>
               <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 leading-tight mb-3">
-                {product.name}
+                {product?.name || 'Product'}
               </h1>
 
               {/* Rating & Reviews */}
@@ -253,17 +271,17 @@ export default function ProductDetailsPage() {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 ${i < Math.floor(Number(product.rating))
+                        className={`w-4 h-4 ${i < Math.floor(productRating)
                           ? "fill-amber-400 text-amber-400"
                           : "text-slate-300"
                           }`}
                       />
                     ))}
                   </div>
-                  <span className="font-semibold text-slate-900">{product.rating}</span>
+                  <span className="font-semibold text-slate-900">{productRating.toFixed(1)}</span>
                 </div>
                 <button className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
-                  ({product.reviews} reviews)
+                  ({productReviews} reviews)
                 </button>
               </div>
             </div>
@@ -272,13 +290,13 @@ export default function ProductDetailsPage() {
             <div className="py-4 border-y border-slate-200">
               <div className="flex items-baseline gap-3 mb-3">
                 <span className="text-4xl font-bold text-slate-900">
-                  {formatPrice(parseFloat(product.price))}
+                  {formatPrice(productPrice)}
                 </span>
               </div>
-              {product.stock > 0 && product.status !== 'out_of_stock' ? (
+              {productStock > 0 && product?.status !== 'out_of_stock' ? (
                 <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200">
                   <Check className="w-3 h-3 mr-1" />
-                  In Stock ({product.stock} available)
+                  In Stock ({productStock} available)
                 </Badge>
               ) : (
                 <Badge variant="destructive">Out of Stock</Badge>
@@ -286,7 +304,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Description */}
-            <p className="text-slate-600 leading-relaxed">{product.description}</p>
+            <p className="text-slate-600 leading-relaxed">{product?.description || 'No description available'}</p>
 
             {/* Cart Info Alert */}
             {inCart && (
@@ -299,7 +317,7 @@ export default function ProductDetailsPage() {
             )}
 
             {/* Quantity Selector */}
-            {product.stock > 0 && product.status !== 'out_of_stock' && (
+            {productStock > 0 && product?.status !== 'out_of_stock' && (
               <div>
                 <label className="text-sm font-semibold text-slate-900 mb-2 block">Quantity</label>
                 <div className="flex items-center gap-4">
@@ -347,7 +365,7 @@ export default function ProductDetailsPage() {
             <div className="flex gap-3">
               <Button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0 || product.status === 'out_of_stock'}
+                disabled={productStock === 0 || product?.status === 'out_of_stock'}
                 size="lg"
                 className="flex-1 bg-blue-600 hover:bg-blue-700 h-14 text-base font-semibold shadow-sm hover:shadow-md"
               >
@@ -411,7 +429,7 @@ export default function ProductDetailsPage() {
                     }`}
                 >
                   {tab}
-                  {tab === "reviews" && ` (${product.reviews})`}
+                  {tab === "reviews" && ` (${productReviews})`}
                   {activeTab === tab && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                   )}
@@ -423,7 +441,7 @@ export default function ProductDetailsPage() {
           <div className="p-6 lg:p-8">
             {activeTab === "description" && (
               <div className="max-w-3xl">
-                <p className="text-slate-700 leading-relaxed mb-6">{product.description}</p>
+                <p className="text-slate-700 leading-relaxed mb-6">{product?.description || 'No description available'}</p>
                 <h4 className="font-semibold text-slate-900 mb-3">Key Features:</h4>
                 <ul className="space-y-2 text-slate-700">
                   <li className="flex items-start gap-2">
@@ -451,25 +469,25 @@ export default function ProductDetailsPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Category</span>
-                    <span className="font-semibold text-slate-900">{product.category?.name}</span>
+                    <span className="font-semibold text-slate-900">{product?.category?.name || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Stock</span>
-                    <span className="font-semibold text-slate-900">{product.stock} units</span>
+                    <span className="font-semibold text-slate-900">{productStock} units</span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Status</span>
-                    <span className="font-semibold text-slate-900 capitalize">{product.status}</span>
+                    <span className="font-semibold text-slate-900 capitalize">{product?.status || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Rating</span>
-                    <span className="font-semibold text-slate-900">{product.rating} / 5.0</span>
+                    <span className="font-semibold text-slate-900">{productRating.toFixed(1)} / 5.0</span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Reviews</span>
-                    <span className="font-semibold text-slate-900">{product.reviews} reviews</span>
+                    <span className="font-semibold text-slate-900">{productReviews} reviews</span>
                   </div>
                   <div className="flex justify-between py-3 border-b border-slate-100">
                     <span className="text-slate-600 font-medium">Warranty</span>
@@ -483,19 +501,19 @@ export default function ProductDetailsPage() {
               <div className="max-w-3xl space-y-8">
                 <div className="flex items-center gap-8 pb-6 border-b border-slate-200">
                   <div className="text-center">
-                    <div className="text-5xl font-bold text-slate-900 mb-2">{product.rating}</div>
+                    <div className="text-5xl font-bold text-slate-900 mb-2">{productRating.toFixed(1)}</div>
                     <div className="flex items-center justify-center mb-2">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-5 h-5 ${i < Math.floor(Number(product.rating))
+                          className={`w-5 h-5 ${i < Math.floor(productRating)
                             ? "fill-amber-400 text-amber-400"
                             : "text-slate-300"
                             }`}
                         />
                       ))}
                     </div>
-                    <div className="text-sm text-slate-600">{product.reviews} reviews</div>
+                    <div className="text-sm text-slate-600">{productReviews} reviews</div>
                   </div>
                 </div>
 
@@ -527,7 +545,7 @@ export default function ProductDetailsPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-900">You May Also Like</h2>
-              {product.category && (
+              {product?.category && (
                 <Link href={`/products?category=${product.category.id}`}>
                   <Button variant="outline" size="sm">
                     View All
@@ -537,7 +555,7 @@ export default function ProductDetailsPage() {
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts && relatedProducts?.map((p) => (
+              {relatedProducts.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
