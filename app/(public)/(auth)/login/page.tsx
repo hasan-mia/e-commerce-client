@@ -40,8 +40,6 @@ export default function LoginPage() {
     try {
       const result = await login(email, password)
 
-      console.log(result)
-
       if (result) {
         toast({
           title: "Welcome back! 👋",
@@ -60,6 +58,7 @@ export default function LoginPage() {
         title: "Login failed",
         description: "Invalid credentials. Please try again.",
         variant: "destructive",
+        className: "text-white",
       })
     } finally {
       setLoading(false)

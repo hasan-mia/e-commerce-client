@@ -115,6 +115,7 @@ export default function CheckoutPage() {
         title: "Checkout Failed",
         description: "Please try again or contact support",
         variant: "destructive",
+        className: "text-white",
       })
     } finally {
       setLoading(false)

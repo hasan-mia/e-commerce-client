@@ -34,6 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
         title: "Out of stock",
         description: "This product is currently unavailable",
         variant: "destructive",
+        className: "text-white",
       })
       return
     }
@@ -43,6 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
         title: "Maximum quantity reached",
         description: `You already have ${product.stock} items in your cart`,
         variant: "destructive",
+        className: "text-white",
       })
       return
     }

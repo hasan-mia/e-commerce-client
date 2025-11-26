@@ -35,7 +35,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const router = useRouter()
-  const { login } = useAuthContext()
+  const { register } = useAuthContext()
   const { toast } = useToast()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +51,7 @@ export default function SignupPage() {
         title: "Password too short",
         description: "Password must be at least 6 characters long",
         variant: "destructive",
+        className: "text-white",
       })
       return false
     }
@@ -59,13 +60,14 @@ export default function SignupPage() {
         title: "Passwords don't match",
         description: "Please make sure your passwords match",
         variant: "destructive",
+        className: "text-white",
       })
       return false
     }
     return true
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!agreedToTerms) {
@@ -73,6 +75,7 @@ export default function SignupPage() {
         title: "Terms required",
         description: "Please accept the terms and conditions",
         variant: "destructive",
+        className: "text-white",
       })
       return
     }
@@ -82,10 +85,7 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      // In a real app, you'd create a new user here
-      // For demo, we'll just log them in
-      login(formData.email, formData.password)
-
+      await register(formData)
       toast({
         title: "Welcome to TechStore! 🎉",
         description: "Your account has been created successfully",
@@ -99,6 +99,7 @@ export default function SignupPage() {
         title: "Signup failed",
         description: "Please try again",
         variant: "destructive",
+        className: "text-white",
       })
     } finally {
       setLoading(false)

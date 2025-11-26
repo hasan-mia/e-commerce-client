@@ -26,6 +26,7 @@ export default function WishlistPage() {
         title: "Out of stock",
         description: "This product is currently unavailable",
         variant: "destructive",
+        className: "text-white",
       })
       return
     }

@@ -62,6 +62,7 @@ export default function ProductDetailsPage() {
         title: "Out of stock",
         description: "This product is currently unavailable",
         variant: "destructive",
+        className: "text-white",
       })
       return
     }
@@ -71,6 +72,7 @@ export default function ProductDetailsPage() {
         title: "Insufficient stock",
         description: `Only ${maxQuantity} more ${maxQuantity === 1 ? "item" : "items"} available`,
         variant: "destructive",
+        className: "text-white",
       })
       return
     }
