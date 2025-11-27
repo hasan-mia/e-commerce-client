@@ -20,7 +20,6 @@ interface CreateOrderPayload {
 export function useCreateOrder() {
   return useMutation({
     mutationFn: async (data: CreateOrderPayload) => {
-      console.log("Creating order with payload:", data)
 
       const response = await http.post("/orders", data)
 

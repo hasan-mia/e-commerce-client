@@ -6,6 +6,7 @@ import "./globals.css"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 // import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { useState } from "react"
+import { Toaster } from "@/components/ui/toaster"
 
 const geistSans = Geist({ subsets: ["latin"] })
 const geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -42,7 +43,7 @@ export default function RootLayout({
       <body className={`${geistSans.className} bg-background text-foreground`} suppressHydrationWarning>
         <QueryClientProvider client={queryClient}>
           {children}
-          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+          <Toaster />
         </QueryClientProvider>
       </body>
     </html>

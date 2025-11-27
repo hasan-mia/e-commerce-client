@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -29,9 +29,38 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { login } = useAuthContext()
+  const { login, isAuthenticated, user, loading: authLoading, mounted } = useAuthContext()
   const router = useRouter()
   const { toast } = useToast()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (mounted && !authLoading && isAuthenticated && user) {
+      // Redirect based on role
+      if (user.role === "ADMIN") {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
+    }
+  }, [isAuthenticated, user, authLoading, mounted, router])
+
+  // Show loading while checking auth
+  if (!mounted || authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render login form if user is authenticated
+  if (isAuthenticated) {
+    return null
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +69,7 @@ export default function LoginPage() {
     try {
       const result = await login(email, password)
 
-      if (result) {
+      if (result.success) {
         toast({
           title: "Welcome back! 👋",
           description: `Logged in as ${result.user.name}`,
@@ -52,38 +81,57 @@ export default function LoginPage() {
         } else {
           router.push("/")
         }
+      } else {
+        toast({
+          title: "Login failed",
+          description: result.error || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       toast({
         title: "Login failed",
         description: "Invalid credentials. Please try again.",
         variant: "destructive",
-        className: "text-white",
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleQuickLogin = (role: "USER" | "ADMIN") => {
+  const handleQuickLogin = async (role: "USER" | "ADMIN") => {
     const testEmail = role === "ADMIN" ? "admin@gmail.com" : "user@gmail.com"
     const testPassword = role === "ADMIN" ? "admin@123" : "user@123"
 
     setLoading(true)
-    const result = login(testEmail, testPassword)
 
-    toast({
-      title: "Quick login successful! ✨",
-      description: `Logged in as ${role}`,
-    })
+    try {
+      const result = await login(testEmail, testPassword)
 
-    setTimeout(() => {
-      if (role === "ADMIN") {
-        router.push("/admin")
-      } else {
-        router.push("/")
+      if (result.success) {
+        toast({
+          title: "Quick login successful! ✨",
+          description: `Logged in as ${role}`,
+        })
+
+        // Redirect based on role
+        setTimeout(() => {
+          if (role === "ADMIN") {
+            router.push("/admin")
+          } else {
+            router.push("/")
+          }
+        }, 500)
       }
-    }, 500)
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Quick login failed. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -279,7 +327,8 @@ export default function LoginPage() {
               <div className="grid gap-3">
                 <button
                   onClick={() => handleQuickLogin("USER")}
-                  className="flex items-center justify-between p-4 bg-white hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300 rounded-xl transition-all group"
+                  disabled={loading}
+                  className="flex items-center justify-between p-4 bg-white hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -295,7 +344,8 @@ export default function LoginPage() {
 
                 <button
                   onClick={() => handleQuickLogin("ADMIN")}
-                  className="flex items-center justify-between p-4 bg-white hover:bg-red-50 border-2 border-slate-200 hover:border-red-300 rounded-xl transition-all group"
+                  disabled={loading}
+                  className="flex items-center justify-between p-4 bg-white hover:bg-red-50 border-2 border-slate-200 hover:border-red-300 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">

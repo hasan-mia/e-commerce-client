@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useLogin, useRegister, useUserInfo } from "@/api/auth"
 import { useQueryClient } from "@tanstack/react-query"
@@ -8,9 +8,19 @@ import { useQueryClient } from "@tanstack/react-query"
 export function useAuth() {
   const { token, user, setToken, setUser, logout: clearAuth } = useAuthStore()
   const queryClient = useQueryClient()
+  const [mounted, setMounted] = useState(false)
 
-  // Fetch user info when token exists
-  const { data: userInfo, isLoading, refetch } = useUserInfo(!!token)
+  // Wait for zustand to hydrate from localStorage
+  useEffect(() => {
+    // Small delay to ensure zustand has loaded from storage
+    const timer = setTimeout(() => {
+      setMounted(true)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Fetch user info when token exists AND we're mounted
+  const { data: userInfo, isLoading, refetch } = useUserInfo(mounted && !!token)
 
   // Update user in store when fetched
   useEffect(() => {
@@ -38,8 +48,8 @@ export function useAuth() {
       if (result?.token) {
         setToken(result.token)
         // Refetch user info after successful login
-        await refetch()
-        return { success: true, user: userInfo }
+        const { data } = await refetch()
+        return { success: true, user: data }
       }
 
       return { success: false, error: "No token received" }
@@ -50,7 +60,7 @@ export function useAuth() {
         error: error?.message || "Login failed"
       }
     }
-  }, [loginMutation, setToken, refetch, userInfo])
+  }, [loginMutation, setToken, refetch])
 
   const register = useCallback(async (data: {
     email: string
@@ -58,15 +68,13 @@ export function useAuth() {
     name: string
   }) => {
     try {
-
-
       const result = await registerMutation.mutateAsync(data)
 
       if (result?.token) {
         setToken(result.token)
         // Refetch user info after successful registration
-        await refetch()
-        return { success: true, user: userInfo }
+        const { data: userData } = await refetch()
+        return { success: true, user: userData }
       }
 
       return { success: false, error: "No token received" }
@@ -77,7 +85,7 @@ export function useAuth() {
         error: error?.message || "Registration failed"
       }
     }
-  }, [registerMutation, setToken, refetch, userInfo])
+  }, [registerMutation, setToken, refetch])
 
   const logout = useCallback(() => {
     clearAuth()
@@ -126,8 +134,8 @@ export function useAuth() {
     canManageOrders,
     canManageUsers,
     canViewAnalytics,
-    mounted: true,
-    loading: isLoading || loginMutation.isPending || registerMutation.isPending,
+    mounted, // Now properly tracks hydration
+    loading: !mounted || isLoading || loginMutation.isPending || registerMutation.isPending,
     loginError: loginMutation.error,
     registerError: registerMutation.error,
   }

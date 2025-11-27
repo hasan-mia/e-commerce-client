@@ -1,6 +1,6 @@
 import { Product, ProductFilters, ProductsResponse } from '@/lib/types';
 import { http } from '../config/http';
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Fetch All Products with Pagination and Filters
@@ -91,5 +91,49 @@ export function useProduct(productId: string, enabled = true) {
     },
     enabled: enabled && !!productId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * create product
+ */
+export function useCreateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const response = await http.post("/product", data);
+      if (!response) throw new Error("Failed to create");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin-products"], data);
+    },
+    onError: (error: any) => {
+      console.error("product error:", error);
+      throw new Error(error?.response?.data?.message || error?.message || "Failed to create");
+    },
+  });
+}
+
+/**
+ * update product
+ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const response = await http.post(`/product`, data);
+      if (!response) throw new Error("Failed to create");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin-products"], data);
+    },
+    onError: (error: any) => {
+      console.error("product error:", error);
+      throw new Error(error?.response?.data?.message || error?.message || "Failed to create");
+    },
   });
 }

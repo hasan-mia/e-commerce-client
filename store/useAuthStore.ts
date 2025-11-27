@@ -1,12 +1,15 @@
-import { User } from '@/lib/types';
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { User } from '@/lib/types'
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+
 interface AuthState {
-  token: string | null;
-  user: User | null;
-  setToken: (token: string) => void;
-  setUser: (user: User | null) => void;
-  logout: () => void;
+  token: string | null
+  user: User | null
+  setToken: (token: string) => void
+  setUser: (user: User) => void
+  logout: () => void
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -14,28 +17,18 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
+      _hasHydrated: false,
       setToken: (token) => set({ token }),
       setUser: (user) => set({ user }),
       logout: () => set({ token: null, user: null }),
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => {
-        // Check if we're on the client side
-        if (typeof window !== 'undefined') {
-          return localStorage;
-        }
-        // Return a dummy storage for SSR
-        return {
-          getItem: () => null,
-          setItem: () => { },
-          removeItem: () => { },
-        };
-      }),
-      partialize: (state) => ({
-        token: state.token,
-        user: state.user,
-      }),
+      storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
-);
+)

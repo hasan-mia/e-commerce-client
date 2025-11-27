@@ -5,32 +5,78 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Trash2, Edit, Search, Plus } from "lucide-react"
 import { formatDate, formatPrice } from "@/lib/utils"
 import { ProductFormModal } from "@/app/(admin)/admin/products/_components/product-form-modal"
-import { useProduct } from "./_hooks/useProduct"
-import { Product } from "@/lib/types"
 import { DataTable, DataTableColumn } from "@/components/ui/data-table"
-import { dummyCategories } from "@/lib/dummy-data"
 import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import useProducts from "./_hooks/useProducts"
+import ConfirmDeleteModal from "@/components/confirm-modal"
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: string
+  images: string[]
+  category_id: string
+  stock: number
+  rating: string
+  reviews: number
+  status: "active" | "out_of_stock"
+  created_at: string
+  updated_at: string
+  category: {
+    id: string
+    name: string
+    description: string
+    icon: string
+  }
+}
 
 export default function AdminProductsPage() {
   const {
-    products,
-    handleAdd,
-    handleEdit,
-    handleDelete,
-    searchTerm,
-    handleSearch,
-    showModal,
-    setShowModal,
-    editingProduct,
-    handleSave
-  } = useProduct()
+    listData,
+    listLoading,
+    listError,
+    categories,
+    onDeleteProduct,
+    handleStatusChange,
+    search,
+    setSearch,
+    limit,
+    setPage,
+    setLimit,
+  } = useProducts("products")
+
+  const [showModal, setShowModal] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+
+
+  const handleAdd = () => {
+    setEditingProduct(null)
+    setShowModal(true)
+  }
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product)
+    setShowModal(true)
+  }
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
+  }
 
   const columns: DataTableColumn<Product>[] = [
     {
-      key: "image",
+      key: "images",
       header: "Image",
       cell: (p) => (
-        <img src={p.image} className="h-10 w-10 rounded-md object-cover" />
+        <img
+          src={p.images?.[0] || "/placeholder.png"}
+          alt={p.name}
+          className="h-10 w-10 rounded-md object-cover"
+        />
       ),
     },
     {
@@ -40,26 +86,49 @@ export default function AdminProductsPage() {
       sortable: true,
     },
     {
+      key: "category",
+      header: "Category",
+      cell: (p) => p.category?.name || "N/A",
+    },
+    {
       key: "price",
       header: "Price",
-      cell: (p) => formatPrice(p.price),
+      cell: (p) => formatPrice(Number(p.price)),
       sortable: true,
     },
     {
       key: "stock",
       header: "Stock",
-      cell: (p) => p.stock,
+      cell: (p) => (
+        <span className={p.stock === 0 ? "text-red-500" : ""}>
+          {p.stock}
+        </span>
+      ),
       sortable: true,
     },
     {
       key: "rating",
       header: "Rating",
-      cell: (p) => p.rating,
+      cell: (p) => `${p.rating} ⭐`,
     },
     {
-      key: "createdAt",
+      key: "status",
+      header: "Status",
+      cell: (p) => (
+        <select
+          value={p.status}
+          onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="active">Active</option>
+          <option value="out_of_stock">Out of Stock</option>
+        </select>
+      ),
+    },
+    {
+      key: "created_at",
       header: "Created",
-      cell: (p) => formatDate(p.createdAt),
+      cell: (p) => formatDate(new Date(p.created_at)),
       sortable: true,
     },
     {
@@ -70,13 +139,23 @@ export default function AdminProductsPage() {
           <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}>
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
-            <Trash2 className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedProductId(p.id)
+              setShowDeleteModal(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
           </Button>
         </div>
       ),
     },
   ]
+
+  const products = listData?.products || []
+  const pagination = listData?.pagination
 
   return (
     <div className="container mx-auto py-2">
@@ -91,7 +170,7 @@ export default function AdminProductsPage() {
                 <Input
                   placeholder="Search products..."
                   className="pl-9 w-full font-normal"
-                  value={searchTerm}
+                  value={search}
                   onChange={handleSearch}
                 />
               </div>
@@ -107,18 +186,29 @@ export default function AdminProductsPage() {
             <DataTable
               data={products}
               columns={columns}
-              isLoading={!products}
+              isLoading={listLoading}
               keyExtractor={(p) => p.id}
+              error={listError ? "Failed to load... Please try again." : undefined}
+              searchQuery={search}
               pagination={{
-                pageSize: 5,
-                pageSizeOptions: [5, 10, 20],
+                pageSize: limit,
+                total: pagination?.total,
+                pageSizeOptions: [10, 20, 50, 100],
                 showSizeChanger: true,
-                serverSide: false,
-                position: 'bottom'
+                serverSide: true,
+                position: "bottom",
+                onPageChange: setPage,
+                onPageSizeChange: setLimit,
               }}
-              searchable={false}
-              searchQuery={searchTerm}
               selectable={false}
+
+              searchable={false}
+              showColumnFilters={false}
+              className="shadow-sm"
+              expandable={false}
+            // renderExpandedRow={(item) => item?.body && <ExpandedRow
+            //   message={item.body || ""}
+            // />
             />
           </CardContent>
         </div>
@@ -126,11 +216,31 @@ export default function AdminProductsPage() {
 
       <ProductFormModal
         isOpen={showModal}
-        product={null} // <-- required
-        onClose={() => setShowModal(false)}
-        onSave={handleSave}
-        categories={dummyCategories}
+        product={editingProduct}
+        onClose={() => {
+          setShowModal(false)
+          setEditingProduct(null)
+        }}
+        categories={categories}
       />
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        isLoading={false}
+        title="Delete?"
+        description="Are you sure you want to delete this? This action cannot be undone."
+        onClose={() => {
+          setShowDeleteModal(false)
+          setSelectedProductId(null)
+        }}
+        onConfirm={() => {
+          if (selectedProductId) {
+            onDeleteProduct(selectedProductId)
+            setShowDeleteModal(false)
+          }
+        }}
+      />
+
     </div>
   )
 }
