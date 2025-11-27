@@ -1,49 +1,46 @@
 "use client"
 
-import { useState } from "react"
-import { dummyCategories } from "@/lib/dummy-data"
-import type { Category } from "@/lib/types"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Trash2, Edit2, Plus } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { CategoryFormModal } from "@/components/admin/category-form-modal"
+import { Card, CardContent } from "@/components/ui/card"
+import { Trash2, Edit, Search, Plus } from "lucide-react"
+import { formatDate } from "@/lib/utils"
+import { DataTable, DataTableColumn } from "@/components/ui/data-table"
+import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import useCategories from "./_hooks/useCategories"
+import ConfirmDeleteModal from "@/components/confirm-modal"
+import { CategoryFormModal } from "./_components/category-form-modal"
+
+interface Category {
+  id: string
+  name: string
+  description: string
+  icon: string
+  created_at: string
+  updated_at: string
+}
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(dummyCategories)
+  const {
+    listData,
+    listLoading,
+    listError,
+    onDeleteCategory,
+    search,
+    setSearch,
+    limit,
+    setPage,
+    setLimit,
+  } = useCategories("categories")
+
   const [showModal, setShowModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const { toast } = useToast()
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
-  const handleSave = (formData: Omit<Category, "id">) => {
-    if (editingCategory) {
-      setCategories((prev) => prev.map((c) => (c.id === editingCategory.id ? { ...c, ...formData } : c)))
-      toast({
-        title: "Category updated",
-        description: `${formData.name} has been updated`,
-      })
-    } else {
-      const newCategory: Category = {
-        ...formData,
-        id: Math.random().toString(),
-      }
-      setCategories((prev) => [newCategory, ...prev])
-      toast({
-        title: "Category created",
-        description: `${formData.name} has been added`,
-      })
-    }
-    setShowModal(false)
+  const handleAdd = () => {
     setEditingCategory(null)
-  }
-
-  const handleDelete = (id: string) => {
-    const category = categories.find((c) => c.id === id)
-    setCategories((prev) => prev.filter((c) => c.id !== id))
-    toast({
-      title: "Category deleted",
-      description: `${category?.name} has been removed`,
-    })
+    setShowModal(true)
   }
 
   const handleEdit = (category: Category) => {
@@ -51,56 +48,127 @@ export default function AdminCategoriesPage() {
     setShowModal(true)
   }
 
-  const handleAdd = () => {
-    setEditingCategory(null)
-    setShowModal(true)
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
   }
 
-  return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Categories Management</h1>
-        <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Category
-        </Button>
-      </div>
+  const columns: DataTableColumn<Category>[] = [
+    {
+      key: "icon",
+      header: "Icon",
+      cell: (c) => (
+        <img
+          src={c.icon || "/placeholder.png"}
+          alt={c.name}
+          className="h-10 w-10 rounded-md object-cover"
+        />
+      ),
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (c) => c.name,
+      sortable: true,
+    },
+    {
+      key: "description",
+      header: "Description",
+      cell: (c) => (
+        <div className="max-w-md truncate">
+          {c.description}
+        </div>
+      ),
+    },
+    {
+      key: "created_at",
+      header: "Created",
+      cell: (c) => formatDate(new Date(c.created_at)),
+      sortable: true,
+    },
+    {
+      key: "updated_at",
+      header: "Updated",
+      cell: (c) => formatDate(new Date(c.updated_at)),
+      sortable: true,
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (c) => (
+        <div className="flex space-x-2">
+          <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedCategoryId(c.id)
+              setShowDeleteModal(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {categories.map((category) => (
-          <Card key={category.id} className="bg-background border-border p-6">
-            <div className="mb-4 h-32 bg-muted rounded-lg overflow-hidden">
-              <img
-                src={category.image || "/placeholder.svg"}
-                alt={category.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h3 className="font-bold text-lg mb-2">{category.name}</h3>
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{category.description}</p>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleEdit(category)}
-                size="sm"
-                variant="ghost"
-                className="flex-1 text-accent hover:bg-accent/10"
-              >
-                <Edit2 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-              <Button
-                onClick={() => handleDelete(category.id)}
-                size="sm"
-                variant="ghost"
-                className="flex-1 text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete
+  const categories = listData?.categories || []
+  const pagination = listData?.pagination
+
+  return (
+    <div className="container mx-auto py-2">
+      <Card>
+        <div className="p-4">
+          <div className="flex justify-between mb-6">
+            <h1 className="text-xl font-semibold">Category Management</h1>
+
+            <div className="flex gap-3">
+              <div className="relative w-6/12">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search categories..."
+                  className="pl-9 w-full font-normal"
+                  value={search}
+                  onChange={handleSearch}
+                />
+              </div>
+
+              <Button className="gap-2 bg-green-600 text-white" onClick={handleAdd}>
+                <Plus className="h-4 w-4" />
+                Add Category
               </Button>
             </div>
-          </Card>
-        ))}
-      </div>
+          </div>
+
+          <CardContent className="p-0">
+            <DataTable
+              data={categories}
+              columns={columns}
+              isLoading={listLoading}
+              keyExtractor={(c) => c.id}
+              error={listError ? "Failed to load... Please try again." : undefined}
+              searchQuery={search}
+              pagination={{
+                pageSize: limit,
+                total: pagination?.total,
+                pageSizeOptions: [10, 20, 50, 100],
+                showSizeChanger: true,
+                serverSide: true,
+                position: "bottom",
+                onPageChange: setPage,
+                onPageSizeChange: setLimit,
+              }}
+              selectable={false}
+              searchable={false}
+              showColumnFilters={false}
+              className="shadow-sm"
+              expandable={false}
+            />
+          </CardContent>
+        </div>
+      </Card>
 
       <CategoryFormModal
         isOpen={showModal}
@@ -109,7 +177,23 @@ export default function AdminCategoriesPage() {
           setShowModal(false)
           setEditingCategory(null)
         }}
-        onSave={handleSave}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        isLoading={false}
+        title="Delete Category?"
+        description="Are you sure you want to delete this category? This action cannot be undone."
+        onClose={() => {
+          setShowDeleteModal(false)
+          setSelectedCategoryId(null)
+        }}
+        onConfirm={() => {
+          if (selectedCategoryId) {
+            onDeleteCategory(selectedCategoryId)
+            setShowDeleteModal(false)
+          }
+        }}
       />
     </div>
   )

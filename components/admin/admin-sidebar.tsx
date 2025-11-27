@@ -13,7 +13,8 @@ import {
   Home,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Grid
 } from "lucide-react"
 import { useState } from "react"
 import { useAuthContext } from "@/contexts/auth-context"
@@ -23,6 +24,16 @@ const menuItems = [
     label: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: TrendingUp,
+  },
+  {
+    label: "Categories",
+    href: "/admin/categories",
+    icon: Grid,
   },
   {
     label: "Products",
@@ -38,16 +49,6 @@ const menuItems = [
     label: "Users",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    label: "Analytics",
-    href: "/admin/analytics",
-    icon: TrendingUp,
-  },
-  {
-    label: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
   },
 ]
 

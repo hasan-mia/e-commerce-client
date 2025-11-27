@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Sidebar } from "@/components/admin-sidebar"
+import { Sidebar } from "@/components/admin/admin-sidebar"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminRoute } from "@/middleware/protectedRoute"
 import { AuthProvider } from "@/contexts/auth-context"
