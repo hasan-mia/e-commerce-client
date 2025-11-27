@@ -56,7 +56,7 @@ export function ProductCard({ product, showBestSellerBadge = false }: ProductCar
     addItem(product)
     toast({
       title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
+      description: `${product?.name} has been added to your cart`,
     })
   }
 

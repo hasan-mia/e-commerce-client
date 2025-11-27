@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 const generateDeals = () => {
   return dummyProducts.map(product => {
     const discountPercent = Math.floor(Math.random() * 50) + 10 // 10-60% off
-    const originalPrice = product.price
+    const originalPrice = Number(product.price)
     const discountedPrice = Math.floor(originalPrice * (1 - discountPercent / 100))
     const savings = originalPrice - discountedPrice
 
