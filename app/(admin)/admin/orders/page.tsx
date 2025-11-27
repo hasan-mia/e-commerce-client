@@ -81,24 +81,8 @@ export default function AdminOrdersPage() {
     setLimit,
   } = useOrders("orders")
 
-  const [showStatusModal, setShowStatusModal] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value)
-  }
-
-  const handleStatusClick = (order: Order) => {
-    setSelectedOrder(order)
-    setShowStatusModal(true)
-  }
-
-  const handleStatusUpdate = async (status: OrderStatus, tracking_number?: string) => {
-    if (selectedOrder) {
-      await updateOrderStatus(selectedOrder.id, status, tracking_number)
-      setShowStatusModal(false)
-      setSelectedOrder(null)
-    }
   }
 
   const getStatusBadgeColor = (status: OrderStatus) => {

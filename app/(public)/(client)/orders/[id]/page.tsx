@@ -1,16 +1,74 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, CreditCard, User } from "lucide-react"
+import { ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, CreditCard, User, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
-import { dummyOrders, dummyProducts } from "@/lib/dummy-data"
-import type { Order, OrderStatus } from "@/lib/types"
 import Image from "next/image"
 import Link from "next/link"
+import Spinner from "@/components/Spinner"
+import { useGetOrderDetails } from "@/api/order"
+
+// Types based on API response
+type OrderStatus = "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  images: string[]
+  price: string
+  stock: number
+}
+
+interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  price: string
+  created_at: string
+  updated_at: string
+  product: Product
+}
+
+interface Transaction {
+  id: string
+  order_id: string
+  amount: string
+  status: string
+  method: string
+  transaction_id: string | null
+  metadata: any
+  created_at: string
+  updated_at: string
+}
+
+interface User {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string | null
+}
+
+interface OrderDetails {
+  id: string
+  user_id: string
+  status: OrderStatus
+  payment_method: string
+  total_amount: string
+  shipping_address: string
+  tracking_number: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  user: User
+  items: OrderItem[]
+  transaction: Transaction
+}
 
 // Order tracking steps
 const getOrderSteps = (status: OrderStatus) => {
@@ -21,7 +79,7 @@ const getOrderSteps = (status: OrderStatus) => {
     { label: "Delivered", status: "DELIVERED", icon: CheckCircle },
   ]
 
-  const statusOrder = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED"]
+  const statusOrder = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"]
   const currentIndex = statusOrder.indexOf(status)
 
   return steps.map((step, index) => ({
@@ -34,38 +92,25 @@ const getOrderSteps = (status: OrderStatus) => {
 export default function OrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [loading, setLoading] = useState(true)
+  const orderId = params.id as string
 
-  useEffect(() => {
-    // Get order with product details
-    const foundOrder = dummyOrders.find(o => o.id === params.id)
-    if (foundOrder) {
-      const orderWithProducts = {
-        ...foundOrder,
-        items: foundOrder.items.map(item => ({
-          ...item,
-          product: dummyProducts.find(p => p.id === item.productId)
-        }))
-      }
-      setOrder(orderWithProducts)
-    }
-    setLoading(false)
-  }, [params.id])
+  const { data, isLoading, error } = useGetOrderDetails(orderId)
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
+  if (isLoading) {
+    return <Spinner />
   }
 
-  if (!order) {
+  if (error || !data) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">Order not found</h2>
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Order not found</h2>
+          <p className="text-slate-600 mb-4">
+            We couldn't find the order you're looking for.
+          </p>
           <Link href="/orders">
             <Button>Back to Orders</Button>
           </Link>
@@ -74,6 +119,7 @@ export default function OrderDetailPage() {
     )
   }
 
+  const order: OrderDetails = data
   const steps = getOrderSteps(order.status)
 
   return (
@@ -94,10 +140,10 @@ export default function OrderDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                Order #{order.id}
+                Order #{order.id.slice(0, 8)}
               </h1>
               <p className="text-slate-600">
-                Placed on {order.createdAt.toLocaleDateString('en-US', {
+                Placed on {new Date(order.created_at).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -107,8 +153,10 @@ export default function OrderDetailPage() {
             </div>
             <Badge className={`px-4 py-2 text-sm font-semibold ${order.status === "DELIVERED" ? "bg-green-100 text-green-700" :
               order.status === "SHIPPED" ? "bg-purple-100 text-purple-700" :
-                order.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                  "bg-yellow-100 text-yellow-700"
+                order.status === "PROCESSING" ? "bg-blue-100 text-blue-700" :
+                  order.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
+                    order.status === "CANCELLED" ? "bg-red-100 text-red-700" :
+                      "bg-yellow-100 text-yellow-700"
               }`}>
               {order.status}
             </Badge>
@@ -147,6 +195,33 @@ export default function OrderDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Cancelled Status */}
+          {order.status === "CANCELLED" && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+              <XCircle className="w-6 h-6 text-red-600" />
+              <div>
+                <p className="font-semibold text-red-900">Order Cancelled</p>
+                <p className="text-sm text-red-700">This order has been cancelled</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tracking Number */}
+          {order.tracking_number && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700 mb-1">Tracking Number</p>
+              <p className="font-mono font-bold text-blue-900">{order.tracking_number}</p>
+            </div>
+          )}
+
+          {/* Notes */}
+          {order.notes && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-700 mb-1">Delivery Notes</p>
+              <p className="text-amber-900">{order.notes}</p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -158,7 +233,7 @@ export default function OrderDetailPage() {
                 {order.items.map((item) => (
                   <div key={item.id} className="flex gap-4 pb-4 border-b border-slate-200 last:border-0">
                     <div className="relative w-24 h-24 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                      {item.product?.images ? (
+                      {item.product?.images && item.product.images.length > 0 ? (
                         <Image
                           src={item.product.images[0]}
                           alt={item.product.name || "Product"}
@@ -180,10 +255,10 @@ export default function OrderDetailPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-slate-600">
-                          Quantity: {item.quantity}
+                          Quantity: {item.quantity} × {formatPrice(parseFloat(item.price))}
                         </p>
                         <p className="font-bold text-slate-900">
-                          {formatPrice(item.price * item.quantity)}
+                          {formatPrice(parseFloat(item.price) * item.quantity)}
                         </p>
                       </div>
                     </div>
@@ -196,7 +271,7 @@ export default function OrderDetailPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal</span>
-                    <span>{formatPrice(order.totalAmount)}</span>
+                    <span>{formatPrice(parseFloat(order.total_amount))}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Shipping</span>
@@ -204,7 +279,7 @@ export default function OrderDetailPage() {
                   </div>
                   <div className="flex justify-between text-xl font-bold text-slate-900 pt-2 border-t">
                     <span>Total</span>
-                    <span className="text-blue-600">{formatPrice(order.totalAmount)}</span>
+                    <span className="text-blue-600">{formatPrice(parseFloat(order.total_amount))}</span>
                   </div>
                 </div>
               </div>
@@ -213,13 +288,32 @@ export default function OrderDetailPage() {
 
           {/* Order Info Sidebar */}
           <div className="space-y-6">
+            {/* Customer Info */}
+            <Card className="bg-white p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-slate-600" />
+                <h3 className="font-bold text-slate-900">Customer</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <p className="text-slate-700">
+                  <span className="font-medium">Name:</span> {order.user.name}
+                </p>
+                <p className="text-slate-700">
+                  <span className="font-medium">Email:</span> {order.user.email}
+                </p>
+                <p className="text-slate-700">
+                  <span className="font-medium">Phone:</span> {order.user.phone}
+                </p>
+              </div>
+            </Card>
+
             {/* Shipping Address */}
             <Card className="bg-white p-6">
               <div className="flex items-center gap-2 mb-4">
                 <MapPin className="w-5 h-5 text-slate-600" />
                 <h3 className="font-bold text-slate-900">Shipping Address</h3>
               </div>
-              <p className="text-slate-700">{order.shippingAddress}</p>
+              <p className="text-slate-700">{order.shipping_address}</p>
             </Card>
 
             {/* Payment Method */}
@@ -228,18 +322,18 @@ export default function OrderDetailPage() {
                 <CreditCard className="w-5 h-5 text-slate-600" />
                 <h3 className="font-bold text-slate-900">Payment Method</h3>
               </div>
-              <p className="text-slate-700">
-                {order.paymentMethod === "STRIPE" ? "💳 Card Payment" : "💵 Cash on Delivery"}
+              <p className="text-slate-700 mb-2">
+                {order.payment_method === "STRIPE" ? "💳 Card Payment" : "💵 Cash on Delivery"}
               </p>
-            </Card>
-
-            {/* Customer Info */}
-            <Card className="bg-white p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-slate-600" />
-                <h3 className="font-bold text-slate-900">Customer</h3>
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <p className="text-xs text-slate-600 mb-1">Transaction Status</p>
+                <Badge className={`text-xs ${order.transaction.status === "COMPLETED" ? "bg-green-100 text-green-700" :
+                  order.transaction.status === "CANCELLED" ? "bg-red-100 text-red-700" :
+                    "bg-yellow-100 text-yellow-700"
+                  }`}>
+                  {order.transaction.status}
+                </Badge>
               </div>
-              <p className="text-slate-700">User ID: {order.userId}</p>
             </Card>
 
             {/* Actions */}

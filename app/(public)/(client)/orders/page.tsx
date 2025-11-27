@@ -1,30 +1,63 @@
 "use client"
 
 import { Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, Eye } from "lucide-react"
-import { useState, useEffect } from "react"
-import type { Order, OrderStatus } from "@/lib/types"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
-import { dummyOrders, dummyProducts } from "@/lib/dummy-data"
 import Link from "next/link"
 import Image from "next/image"
 import { useAuthContext } from "@/contexts/auth-context"
 import Spinner from "@/components/Spinner"
+import { useMyOrder } from "@/api/order"
 
-// Helper to get full order with product details
-const getOrdersWithProducts = (userId: string) => {
-  return dummyOrders
-    .filter(order => order.userId === userId)
-    .map(order => ({
-      ...order,
-      items: order.items.map(item => ({
-        ...item,
-        product: dummyProducts.find(p => p.id === item.productId)
-      }))
-    }))
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+// Types based on API response
+type OrderStatus = "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
+
+interface Product {
+  id: string
+  name: string
+  images: string[]
+  price: string
+}
+
+interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  price: string
+  created_at: string
+  updated_at: string
+  product: Product
+}
+
+interface Transaction {
+  id: string
+  order_id: string
+  amount: string
+  status: string
+  method: string
+  transaction_id: string | null
+  metadata: any
+  created_at: string
+  updated_at: string
+}
+
+interface Order {
+  id: string
+  user_id: string
+  status: OrderStatus
+  payment_method: string
+  total_amount: string
+  shipping_address: string
+  tracking_number: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  items: OrderItem[]
+  transaction: Transaction
 }
 
 // Status badge configuration
@@ -66,25 +99,37 @@ const getStatusConfig = (status: OrderStatus) => {
 
 export default function OrdersPage() {
   const { user, mounted } = useAuthContext()
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, error } = useMyOrder(!!user)
 
-  useEffect(() => {
-    if (mounted && user) {
-      // Simulate API call
-      setTimeout(() => {
-        const userOrders = getOrdersWithProducts(user.id)
-        setOrders(userOrders)
-        setLoading(false)
-      }, 500)
-    }
-  }, [user, mounted])
+  if (!mounted || isLoading) {
+    return <Spinner />
+  }
 
-  if (!mounted || loading) {
+  // Handle error state
+  if (error) {
     return (
-      <Spinner />
+      <div className="min-h-screen bg-slate-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <Card className="bg-white p-12 text-center">
+              <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <XCircle className="w-12 h-12 text-red-400" />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-3">Error Loading Orders</h1>
+              <p className="text-slate-600 mb-8 text-lg">
+                We couldn't load your orders. Please try again later.
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </div>
     )
   }
+
+  const orders: Order[] = data?.orders || []
 
   if (orders.length === 0) {
     return (
@@ -167,7 +212,7 @@ export default function OrdersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">
-                  {orders.filter(o => o.status === "PENDING" || o.status === "CONFIRMED").length}
+                  {orders.filter(o => o.status === "PENDING" || o.status === "CONFIRMED" || o.status === "PROCESSING").length}
                 </p>
                 <p className="text-xs text-slate-600">Processing</p>
               </div>
@@ -189,13 +234,13 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-4">
                       <div>
                         <p className="text-sm text-slate-600">Order Number</p>
-                        <p className="font-bold text-slate-900">#{order.id}</p>
+                        <p className="font-bold text-slate-900 text-xs">#{order.id.slice(0, 8)}</p>
                       </div>
                       <div className="h-8 w-px bg-slate-300" />
                       <div>
                         <p className="text-sm text-slate-600">Order Date</p>
                         <p className="font-medium text-slate-900">
-                          {order.createdAt.toLocaleDateString('en-US', {
+                          {new Date(order.created_at).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
@@ -206,7 +251,7 @@ export default function OrdersPage() {
                       <div>
                         <p className="text-sm text-slate-600">Total Amount</p>
                         <p className="font-bold text-blue-600">
-                          {formatPrice(order.totalAmount)}
+                          {formatPrice(parseFloat(order.total_amount))}
                         </p>
                       </div>
                     </div>
@@ -223,7 +268,7 @@ export default function OrdersPage() {
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-4">
                         <div className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                          {item.product?.images ? (
+                          {item.product?.images && item.product.images.length > 0 ? (
                             <Image
                               src={item.product.images[0]}
                               alt={item.product.name || "Product"}
@@ -241,12 +286,12 @@ export default function OrdersPage() {
                             {item.product?.name || "Product"}
                           </h4>
                           <p className="text-sm text-slate-600">
-                            Quantity: {item.quantity} × {formatPrice(item.price)}
+                            Quantity: {item.quantity} × {formatPrice(parseFloat(item.price))}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-slate-900">
-                            {formatPrice(item.price * item.quantity)}
+                            {formatPrice(parseFloat(item.price) * item.quantity)}
                           </p>
                         </div>
                       </div>
@@ -257,10 +302,15 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                     <div>
                       <p className="text-sm text-slate-600 mb-1">Shipping Address</p>
-                      <p className="text-sm font-medium text-slate-900">{order.shippingAddress}</p>
+                      <p className="text-sm font-medium text-slate-900">{order.shipping_address}</p>
                       <p className="text-xs text-slate-500 mt-1">
-                        Payment: {order.paymentMethod === "STRIPE" ? "Card Payment" : "Cash on Delivery"}
+                        Payment: {order.payment_method === "STRIPE" ? "Card Payment" : "Cash on Delivery"}
                       </p>
+                      {order.tracking_number && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Tracking: {order.tracking_number}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Link href={`/orders/${order.id}`}>
@@ -281,6 +331,14 @@ export default function OrdersPage() {
             )
           })}
         </div>
+
+        {/* Pagination Info */}
+        {data?.pagination && (
+          <div className="mt-8 text-center text-sm text-slate-600">
+            Showing page {data.pagination.page} of {data.pagination.totalPages}
+            ({data.pagination.total} total orders)
+          </div>
+        )}
       </div>
     </div>
   )
