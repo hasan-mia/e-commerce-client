@@ -41,12 +41,8 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  console.log("cart item:", items)
-
   // Fetch address data
   const { data: addressData, isLoading: isLoadingAddress } = useGetAddress()
-
-  console.log(addressData)
 
   // Create order mutation
   const createOrderMutation = useCreateOrder()
@@ -78,7 +74,6 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (addressData) {
-      console.log('Address data received:', addressData)
       setFormData(prev => {
         const newData = {
           ...prev,
@@ -165,7 +160,7 @@ export default function CheckoutPage() {
       // Create order payload
       const orderData = {
         items: orderItems,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod === "CARD" ? "STRIPE" : "CASH_ON_DELIVERY" as "CASH_ON_DELIVERY" | "STRIPE",
         address_id: addressData.id,
         notes: notes.trim() || undefined
       }
@@ -183,7 +178,7 @@ export default function CheckoutPage() {
 
       // Redirect to orders page
       if (result.data?.id) {
-        router.push(`/orders/success/${result.data.id}`)
+        router.push(`/checkout/success/${result.data.id}`)
       } else {
         router.push('/orders')
       }
@@ -199,17 +194,6 @@ export default function CheckoutPage() {
   }
   // Check if form is valid for submission
   const isFormValid = () => {
-    console.log('Form validation:', {
-      hasAddressId: !!addressData?.data?.id,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      city: formData.city,
-      zipCode: formData.zipCode,
-      itemsCount: items.length
-    })
-
     return (
       addressData?.data?.id &&
       formData.name.trim() !== '' &&

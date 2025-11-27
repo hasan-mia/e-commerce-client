@@ -9,7 +9,7 @@ interface OrderItem {
 
 interface CreateOrderPayload {
   items: OrderItem[]
-  payment_method: "CASH_ON_DELIVERY" | "CARD"
+  payment_method: "CASH_ON_DELIVERY" | "STRIPE"
   address_id: string
   notes?: string
 }
@@ -27,8 +27,6 @@ export function useCreateOrder() {
       if (!response?.data) {
         throw new Error("Failed to create order")
       }
-
-      console.log("Order created successfully:", response.data)
       return response.data
     },
     onError: (error: any) => {
@@ -47,7 +45,7 @@ export function useCreateOrder() {
  */
 export function useMyOrder(enabled = true) {
   return useQuery({
-    queryKey: ["user-order"],
+    queryKey: ["user-orders"],
     queryFn: async () => {
       const response = await http.get("/orders/my-orders");
       const { data } = response;
@@ -58,4 +56,22 @@ export function useMyOrder(enabled = true) {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+}
+
+/**
+ * Fetch single order details by ID
+ */
+export function useGetOrderDetails(orderId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["order-details", orderId],
+    queryFn: async () => {
+      const response = await http.get(`/orders/${orderId}`)
+      const { data } = response.data
+      if (!data) throw new Error("Order not found")
+      return data
+    },
+    enabled: enabled && !!orderId,
+    retry: 1,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
 }
