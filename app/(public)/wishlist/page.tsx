@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Heart, ShoppingCart, Trash2, ArrowRight, Sparkles } from "lucide-react"
-import { dummyProducts } from "@/lib/dummy-data"
+import { Heart, ShoppingCart, Trash2, ArrowRight, Sparkles, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,16 +11,31 @@ import { formatPrice } from "@/lib/utils"
 import Image from "next/image"
 import { useCartContext } from "@/contexts/cart-context"
 import { useWishlistContext } from "@/contexts/wishlist-context"
+import { useProducts } from "@/api/product"
+import { useMemo } from "react"
 
 export default function WishlistPage() {
-  const { wishlistIds, removeFromWishlist, clearWishlist } = useWishlistContext()
+  const { wishlistIds, removeFromWishlist, clearWishlist, mounted } = useWishlistContext()
   const { addItem, isInCart } = useCartContext()
   const { toast } = useToast()
 
-  const wishlistProducts = dummyProducts.filter((p) => wishlistIds.includes(p.id))
+  // Fetch all products (we'll filter client-side for wishlist items)
+  const { data, isLoading, isError } = useProducts(
+    {
+      page: 1,
+      limit: 100 // Fetch enough products to cover wishlist items
+    },
+    wishlistIds.length > 0 // Only fetch if there are wishlist items
+  )
 
-  const handleAddToCart = (product: typeof dummyProducts[0]) => {
-    if (product.stock === 0) {
+  // Filter products that are in the wishlist
+  const wishlistProducts = useMemo(() => {
+    if (!data?.products) return []
+    return data.products.filter((p) => wishlistIds.includes(p.id))
+  }, [data?.products, wishlistIds])
+
+  const handleAddToCart = (product: typeof wishlistProducts[0]) => {
+    if (product.stock === 0 || product.status === 'out_of_stock') {
       toast({
         title: "Out of stock",
         description: "This product is currently unavailable",
@@ -54,7 +68,42 @@ export default function WishlistPage() {
     })
   }
 
-  if (wishlistProducts.length === 0) {
+  // Show loading state only on initial mount
+  if (!mounted || (isLoading && wishlistIds.length > 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-slate-600">Loading your wishlist...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-md mx-auto text-center">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-12 h-12 text-red-500" />
+            </div>
+            <h1 className="text-3xl font-bold mb-3 text-slate-900">Error Loading Wishlist</h1>
+            <p className="text-slate-600 mb-8">
+              We couldn't load your wishlist items. Please try again.
+            </p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show empty state
+  if (wishlistIds.length === 0 || wishlistProducts.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
         <div className="container mx-auto px-4 py-12">
@@ -79,7 +128,10 @@ export default function WishlistPage() {
   }
 
   // Calculate total value of wishlist
-  const totalValue = wishlistProducts.reduce((sum, product) => sum + product.price, 0)
+  const totalValue = wishlistProducts.reduce((sum, product) => {
+    const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price
+    return sum + price
+  }, 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -131,7 +183,7 @@ export default function WishlistPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-slate-900">
-                    {wishlistProducts.filter((p) => p.stock > 0).length}
+                    {wishlistProducts.filter((p) => p.stock > 0 && p.status !== 'out_of_stock').length}
                   </div>
                   <div className="text-sm text-slate-600">In Stock</div>
                 </div>
@@ -152,12 +204,15 @@ export default function WishlistPage() {
           </div>
         </div>
 
-        {/* Wishlist Items - Two Views */}
+        {/* Wishlist Items - List View */}
         <div className="space-y-6">
-          {/* List View */}
           <div className="space-y-4 mb-8">
             {wishlistProducts.map((product) => {
               const inCart = isInCart(product.id)
+              const productImage = product.images?.[0] || "/placeholder.svg"
+              const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price
+              const rating = typeof product.rating === 'string' ? parseFloat(product.rating) : product.rating
+
               return (
                 <Card
                   key={product.id}
@@ -169,12 +224,12 @@ export default function WishlistPage() {
                       <Link href={`/products/${product.id}`} className="flex-shrink-0">
                         <div className="relative w-32 h-32 lg:w-40 lg:h-40 bg-slate-50 rounded-xl overflow-hidden group">
                           <Image
-                            src={product.image || "/placeholder.svg"}
+                            src={productImage}
                             alt={product.name}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-300"
                           />
-                          {product.stock === 0 && (
+                          {(product.stock === 0 || product.status === 'out_of_stock') && (
                             <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center">
                               <Badge variant="destructive" className="text-sm">
                                 Out of Stock
@@ -201,12 +256,12 @@ export default function WishlistPage() {
                             <div className="flex items-center gap-2 mb-3">
                               <div className="flex items-center">
                                 {Array.from({ length: 5 }).map((_, i) => (
-                                  <span key={i} className={`text-sm ${i < Math.floor(product.rating) ? "text-amber-400" : "text-slate-300"}`}>
+                                  <span key={i} className={`text-sm ${i < Math.floor(rating) ? "text-amber-400" : "text-slate-300"}`}>
                                     ★
                                   </span>
                                 ))}
                               </div>
-                              <span className="text-sm font-medium text-slate-700">{product.rating}</span>
+                              <span className="text-sm font-medium text-slate-700">{rating}</span>
                               <span className="text-sm text-slate-500">({product.reviews} reviews)</span>
                             </div>
 
@@ -232,7 +287,7 @@ export default function WishlistPage() {
                         {/* Price and Actions */}
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="text-3xl font-bold text-blue-600">
-                            {formatPrice(product.price)}
+                            {formatPrice(price)}
                           </div>
 
                           <div className="flex gap-3">
@@ -244,7 +299,7 @@ export default function WishlistPage() {
                             </Link>
                             <Button
                               onClick={() => handleAddToCart(product)}
-                              disabled={product.stock === 0}
+                              disabled={product.stock === 0 || product.status === 'out_of_stock'}
                               className={`${inCart
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-blue-600 hover:bg-blue-700"
@@ -263,7 +318,7 @@ export default function WishlistPage() {
             })}
           </div>
 
-          {/* Grid View Title */}
+          {/* Grid View */}
           <div className="border-t border-slate-200 pt-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Browse Your Favorites</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

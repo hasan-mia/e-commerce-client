@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useSearchParams } from "next/navigation"
 import { SlidersHorizontal, X, Grid3x3, LayoutGrid, Loader2 } from "lucide-react"
 import { useProducts } from "@/api/product"
+import { useCategories } from "@/api/category"
 
 function ProductsContent() {
   const searchParams = useSearchParams()
@@ -22,6 +23,20 @@ function ProductsContent() {
   const [gridView, setGridView] = useState<"3" | "4">("3")
   const [page, setPage] = useState(1)
   const limit = 12
+
+  const { data: catData, isLoading: catLoading, isFetching, error: catError } = useCategories();
+
+  if (catLoading || isFetching || catData?.categories?.length === 0) {
+    return null;
+  }
+
+  if (catError) {
+    return (
+      <div className="bg-red-100 py-3 text-center text-red-600">
+        Failed to load categories
+      </div>
+    );
+  }
 
   // Fetch products using the API hook
   const { data, isLoading, isError, error } = useProducts({
@@ -51,7 +66,7 @@ function ProductsContent() {
     return result
   }, [data?.products, selectedRatings])
 
-  const selectedCategory = categoryId ? dummyCategories.find((c) => c.id === categoryId) : null
+  const selectedCategory = categoryId ? catData?.categories?.find((c) => c?.id === categoryId) : null
 
   const toggleRating = (rating: number) => {
     setSelectedRatings((prev) =>
